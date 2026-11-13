@@ -234,7 +234,7 @@ def main():
 
     report_path = args.report.expanduser().resolve()
     result = {
-        "runner_version": "0.1.7",
+        "runner_version": "0.1.8",
         "overall": "running",
         "stage": "initializing",
         "extension": args.extension_zip.name,
@@ -247,7 +247,10 @@ def main():
         "cdp_commands": 0,
         "confirmed_turns": 0,
         "reverse_guard": 0,
+        "gift_spawns": 0,
         "gift_pickups": 0,
+        "gift_expirations": [],
+        "active_gifts": 0,
         "non_gift_pickups": [],
         "autopilot_abort": False,
         "extension_log_tail": "",
@@ -367,6 +370,9 @@ def main():
                 log_text = log_data.get("log") or ""
                 pickups = [event for event in events if event.get("kind") == "pickup"]
                 gifts = [event for event in pickups if event.get("type") == "gift"]
+                gift_spawns = [event for event in events if event.get("kind") == "spawn" and event.get("type") == "gift"]
+                gift_expirations = [event for event in events if event.get("kind") == "expire" and event.get("type") == "gift"]
+                active_gifts = [item for item in state.get("items", []) if item.get("kind") == "gift"]
                 non_gifts = [event.get("type") for event in pickups if event.get("type") != "gift"]
                 game_overs = [event for event in events if event.get("kind") == "game-over"]
                 actual_turns = [event for event in events if event.get("kind") == "turn"]
@@ -384,7 +390,10 @@ def main():
                     "confirmed_turns": confirmed_turns,
                     "reverse_guard": log_text.count("ЗАЩИТА ОТ РАЗВОРОТА"),
                     "autopilot_abort": autopilot_abort,
+                    "gift_spawns": len(gift_spawns),
                     "gift_pickups": len(gifts),
+                    "gift_expirations": gift_expirations,
+                    "active_gifts": len(active_gifts),
                     "non_gift_pickups": non_gifts,
                     "actual_turns": len(actual_turns),
                     "game_over_events": game_overs,
@@ -411,6 +420,10 @@ def main():
                     failures.append("no gift was collected during the test")
                 if non_gifts:
                     failures.append(f"non-gift pickup detected: {non_gifts}")
+                if gift_expirations:
+                    failures.append(f"{len(gift_expirations)} gift(s) expired before pickup")
+                if len(gift_spawns) != len(gifts) + len(gift_expirations) + len(active_gifts):
+                    failures.append("gift spawn/pickup/expiry accounting mismatch")
                 if state.get("score") != len(gifts) * 500:
                     failures.append("score does not match gift-only pickups")
                 result["overall"] = "failed" if failures else "passed"
@@ -421,7 +434,8 @@ def main():
                 print(json.dumps({
                     key: result.get(key) for key in [
                         "overall", "extension", "seconds_requested", "scenario", "seed",
-                        "cdp_commands", "confirmed_turns", "actual_turns", "gift_pickups",
+                        "cdp_commands", "confirmed_turns", "actual_turns", "gift_spawns",
+                        "gift_pickups", "gift_expirations", "active_gifts",
                         "non_gift_pickups", "autopilot_abort", "state", "failures", "error"
                     ]
                 }, ensure_ascii=False, indent=2))
