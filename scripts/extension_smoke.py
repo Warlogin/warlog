@@ -65,10 +65,17 @@ PROBE_JS = r"""
       return response;
     },
     async readLog() {
-      const data = await chrome.storage.local.get(['lastSnakeLog', 'lastSnakeStatus']);
+      const data = await chrome.storage.local.get(null);
+      const entries = Object.entries(data);
+      const textEntries = entries.filter(([, value]) => typeof value === 'string');
+      const preferredLog = data.lastSnakeLog || data.snakeLog || data.log || '';
+      const fallbackLog = textEntries
+        .filter(([key, value]) => /log|journal|diagnostic/i.test(key) || /АВТОПИЛОТ|CDP|ПОДТВЕРЖДЁН|ЗАЩИТА/.test(value))
+        .map(([key, value]) => '[' + key + ']\\n' + value).join('\\n');
       return {
-        log: data.lastSnakeLog || '',
-        status: data.lastSnakeStatus || ''
+        log: preferredLog || fallbackLog,
+        status: data.lastSnakeStatus || data.snakeStatus || data.status || '',
+        storage_keys: Object.keys(data)
       };
     }
   };
@@ -214,7 +221,7 @@ def main():
 
     report_path = args.report.expanduser().resolve()
     result = {
-        "runner_version": "0.1.1",
+        "runner_version": "0.1.2",
         "overall": "running",
         "stage": "initializing",
         "extension": args.extension_zip.name,
@@ -268,7 +275,21 @@ def main():
                     viewport={"width": 1360, "height": 960},
                 )
                 game_page = context.new_page()
-                game_page.on("pageerror", lambda exc: result["page_errors"].append(str(exc)))
+                def record_page_error(page_name, exc):
+                    result["page_errors"].append({
+                        "page": page_name,
+                        "message": getattr(exc, "message", str(exc)),
+                        "stack": getattr(exc, "stack", None) or str(exc),
+                    })
+                def record_console_error(page_name, message):
+                    if message.type == "error":
+                        result["console_errors"].append({
+                            "page": page_name,
+                            "text": message.text,
+                            "location": message.location,
+                        })
+                game_page.on("pageerror", lambda exc: record_page_error("game", exc))
+                game_page.on("console", lambda message: record_console_error("game", message))
                 game_page.goto(result["game_url"], wait_until="domcontentloaded")
                 game_page.wait_for_function(
                     "window.__ICE_SNAKE_LAB__?.isSimulator === true", timeout=15000
@@ -281,7 +302,8 @@ def main():
 
                 result["stage"] = "open-extension-bridge"
                 probe_page = context.new_page()
-                probe_page.on("pageerror", lambda exc: result["page_errors"].append(str(exc)))
+                probe_page.on("pageerror", lambda exc: record_page_error("extension-bridge", exc))
+                probe_page.on("console", lambda message: record_console_error("extension-bridge", message))
                 probe_url = f"chrome-extension://{extension_id}/ice-snake-lab-probe.html"
                 probe_page.goto(probe_url, wait_until="domcontentloaded")
                 probe_page.wait_for_function(

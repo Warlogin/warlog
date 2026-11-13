@@ -24,3 +24,11 @@
 - Runner v0.1.1 replaces direct worker evaluation with a temporary extension-origin bridge page that sends the same `START` runtime message and reads `chrome.storage.local`.
 - A JSON report is now created before browser launch and atomically updated on every exit path, including failure. Browser and HTTP server cleanup are handled in `finally`.
 - This is a harness fix only. It does not modify or certify extension v0.6.9.
+
+
+## Stable baseline selection — 13.11.2026
+
+- User selected extension v0.6.7 as the stable reference baseline: `ice-snake-bot-v0.6.7-gift-only-cycle-lookahead.zip`.
+- v0.6.9 is not the baseline and is held aside pending separate review.
+- The v0.6.9 extension-smoke report showed START acknowledged, then Canvas fallback could not restore semantic sprites and intentionally sent no keys. The simulator then moved straight into the wall. This run is invalid as a comparative autopilot-quality test.
+- Runner v0.1.2 records page-error stack traces and console errors and searches all `chrome.storage.local` keys for diagnostic text, improving compatibility with older extension builds.
