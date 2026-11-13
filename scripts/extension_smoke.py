@@ -234,7 +234,7 @@ def main():
 
     report_path = args.report.expanduser().resolve()
     result = {
-        "runner_version": "0.1.6",
+        "runner_version": "0.1.7",
         "overall": "running",
         "stage": "initializing",
         "extension": args.extension_zip.name,
