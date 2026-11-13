@@ -33,4 +33,4 @@ missing = [item for item in required if item not in combined_source]
 assert not missing, f"Missing foreground-throttling safeguards: {missing}"
 assert source.index("game_page.bring_to_front()") < source.index("game_page.wait_for_timeout(args.seconds * 1000)")
 assert '"runner_version": "0.1.9"' in source, "Runner version is not 0.1.9"
-print("PASS: runner foreground timing and strict release gate checks are present")
+print("PASS: runner foreground timing and objective gift-skip gate checks are present")
