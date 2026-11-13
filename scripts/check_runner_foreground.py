@@ -18,12 +18,17 @@ required = [
     'non_gift_pickups',
     'count_confirmed_turns(log_text)',
     'gift_expirations',
-    'gift(s) expired before pickup',
+    'assess_expired_gift_skips(',
+    'accepted_safe_gift_skips',
+    'gift_skip_diagnostics',
+    'MAX_ACCEPTED_NO_SAFE_ROUTE_SKIPS',
+    'gift(s) expired without matching no-safe-route evidence',
+    'exceed the allowance',
     'gift spawn/pickup/expiry accounting mismatch',
     'state.get("score") != len(gifts) * 500',
 ]
 missing = [item for item in required if item not in source]
 assert not missing, f"Missing foreground-throttling safeguards: {missing}"
 assert source.index("game_page.bring_to_front()") < source.index("game_page.wait_for_timeout(args.seconds * 1000)")
-assert '"runner_version": "0.1.8"' in source, "Runner version is not 0.1.8"
+assert '"runner_version": "0.1.9"' in source, "Runner version is not 0.1.9"
 print("PASS: runner foreground timing and strict release gate checks are present")

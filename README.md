@@ -81,3 +81,12 @@ Runner v0.1.5 brings the game tab to the foreground before the timed run, disabl
 ### Simulator v0.1.6 — persistent edge gifts
 
 The edge/corner scenarios now keep an active gift until pickup or expiry. The previous fixed spawn interval silently replaced an uncollected gift, creating false edge-miss failures. Two regression tests cover persistence and replacement only after expiry. This is a deliberate test-harness assumption; original-game spawn cadence remains unverified.
+
+
+### Extension smoke runner v0.1.9 — objective gift skips
+
+- A run may contain up to two expired gifts only when the extension log explicitly reports no-safe-route for the same gift cell while that gift was active.
+- The runner correlates simulator spawn/expiry timestamps with the matching target coordinate in the extension log; unrelated, stale, or post-expiry diagnostics do not justify a skip.
+- An expired gift without matching evidence remains a failure. More than two objectively blocked gifts also remains a failure.
+- Collision/game-over, non-gift pickups, protective stops, missing confirmed input, and score/accounting mismatches remain hard failures.
+- Accepted safe skips are reported separately as accepted_safe_gift_skips; they are not hidden or counted as pickups.

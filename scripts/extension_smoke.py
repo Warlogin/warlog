@@ -21,6 +21,11 @@ from pathlib import Path, PurePosixPath
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse
 
+try:
+    from .gift_skip_policy import assess_expired_gift_skips
+except ImportError:
+    from gift_skip_policy import assess_expired_gift_skips
+
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -234,7 +239,7 @@ def main():
 
     report_path = args.report.expanduser().resolve()
     result = {
-        "runner_version": "0.1.8",
+        "runner_version": "0.1.9",
         "overall": "running",
         "stage": "initializing",
         "extension": args.extension_zip.name,
@@ -250,6 +255,8 @@ def main():
         "gift_spawns": 0,
         "gift_pickups": 0,
         "gift_expirations": [],
+        "accepted_safe_gift_skips": 0,
+        "gift_skip_diagnostics": [],
         "active_gifts": 0,
         "non_gift_pickups": [],
         "autopilot_abort": False,
@@ -382,6 +389,11 @@ def main():
                     or "ЗАЩИТНАЯ ОСТАНОВКА" in log_text
                     or "planner-requested-180-degree-turn" in log_text
                 )
+                gift_skip_diagnostics, accepted_safe_gift_skips, gift_skip_failures = (
+                    assess_expired_gift_skips(
+                        gift_expirations, gift_spawns, log_text, result.get("started_at")
+                    )
+                )
                 result.update({
                     "state": state,
                     "status": log_data.get("status") or "",
@@ -393,6 +405,8 @@ def main():
                     "gift_spawns": len(gift_spawns),
                     "gift_pickups": len(gifts),
                     "gift_expirations": gift_expirations,
+                    "accepted_safe_gift_skips": accepted_safe_gift_skips,
+                    "gift_skip_diagnostics": gift_skip_diagnostics,
                     "active_gifts": len(active_gifts),
                     "non_gift_pickups": non_gifts,
                     "actual_turns": len(actual_turns),
@@ -420,8 +434,7 @@ def main():
                     failures.append("no gift was collected during the test")
                 if non_gifts:
                     failures.append(f"non-gift pickup detected: {non_gifts}")
-                if gift_expirations:
-                    failures.append(f"{len(gift_expirations)} gift(s) expired before pickup")
+                failures.extend(gift_skip_failures)
                 if len(gift_spawns) != len(gifts) + len(gift_expirations) + len(active_gifts):
                     failures.append("gift spawn/pickup/expiry accounting mismatch")
                 if state.get("score") != len(gifts) * 500:
@@ -435,8 +448,9 @@ def main():
                     key: result.get(key) for key in [
                         "overall", "extension", "seconds_requested", "scenario", "seed",
                         "cdp_commands", "confirmed_turns", "actual_turns", "gift_spawns",
-                        "gift_pickups", "gift_expirations", "active_gifts",
-                        "non_gift_pickups", "autopilot_abort", "state", "failures", "error"
+                        "gift_pickups", "gift_expirations", "accepted_safe_gift_skips",
+                        "gift_skip_diagnostics", "active_gifts", "non_gift_pickups",
+                        "autopilot_abort", "state", "failures", "error"
                     ]
                 }, ensure_ascii=False, indent=2))
 

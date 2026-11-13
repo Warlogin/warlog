@@ -32,7 +32,7 @@ jobs:
             *.json
           if-no-files-found: ignore
       - name: Compile Python browser harnesses
-        run: python3 -m py_compile scripts/server.py scripts/generate_assets.py scripts/browser_smoke.py scripts/extension_smoke.py
+        run: python3 -m py_compile scripts/server.py scripts/generate_assets.py scripts/browser_smoke.py scripts/extension_smoke.py scripts/gift_skip_policy.py
 
       - name: Test extension smoke turn metrics
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
