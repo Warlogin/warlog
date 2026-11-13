@@ -34,5 +34,8 @@ jobs:
       - name: Compile Python browser harnesses
         run: python3 -m py_compile scripts/server.py scripts/generate_assets.py scripts/browser_smoke.py scripts/extension_smoke.py
 
+      - name: Test extension smoke turn metrics
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+
       - name: Check extension runner foreground safeguards
         run: python3 scripts/check_runner_foreground.py
