@@ -9,6 +9,7 @@ A JSON report is written on success AND on every handled failure.
 """
 import argparse
 import json
+import os
 import re
 import sys
 import tempfile
@@ -217,21 +218,26 @@ def main():
     )
     parser.add_argument("--report", type=Path, default=Path("extension-smoke-report.json"))
     parser.add_argument("--headed", action="store_true", help="Show Chromium while testing")
+    parser.add_argument("--executable-path", type=Path, help="Optional installed Chromium/Chrome binary")
     args = parser.parse_args()
 
     report_path = args.report.expanduser().resolve()
     result = {
-        "runner_version": "0.1.5",
+        "runner_version": "0.1.6",
         "overall": "running",
         "stage": "initializing",
         "extension": args.extension_zip.name,
         "extension_zip": str(args.extension_zip.expanduser().resolve()),
-        "seconds": args.seconds,
+        "seconds_requested": args.seconds,
         "seed": args.seed,
         "scenario": args.scenario,
         "started_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "start": None,
         "cdp_commands": 0,
+        "confirmed_turns": 0,
         "reverse_guard": 0,
+        "gift_pickups": 0,
+        "non_gift_pickups": [],
         "autopilot_abort": False,
         "extension_log_tail": "",
         "simulator_events": [],
@@ -265,19 +271,26 @@ def main():
 
             result["stage"] = "launch-chromium"
             with sync_playwright() as playwright:
-                context = playwright.chromium.launch_persistent_context(
-                    user_data_dir=str(temp_root / "chromium-profile"),
-                    channel="chromium",
-                    headless=not args.headed,
-                    args=[
-                        f"--disable-extensions-except={extension}",
-                        f"--load-extension={extension}",
-                        "--disable-background-timer-throttling",
-                        "--disable-renderer-backgrounding",
-                        "--disable-backgrounding-occluded-windows",
-                    ],
-                    viewport={"width": 1360, "height": 960},
-                )
+                launch_args = [
+                    f"--disable-extensions-except={extension}",
+                    f"--load-extension={extension}",
+                    "--disable-background-timer-throttling",
+                    "--disable-renderer-backgrounding",
+                    "--disable-backgrounding-occluded-windows",
+                ]
+                if os.name != "nt":
+                    launch_args.extend(["--no-sandbox", "--disable-dev-shm-usage"])
+                launch_options = {
+                    "user_data_dir": str(temp_root / "chromium-profile"),
+                    "headless": not args.headed,
+                    "args": launch_args,
+                    "viewport": {"width": 1360, "height": 960},
+                }
+                if args.executable_path:
+                    launch_options["executable_path"] = str(args.executable_path.expanduser().resolve())
+                else:
+                    launch_options["channel"] = "chromium"
+                context = playwright.chromium.launch_persistent_context(**launch_options)
                 game_page = context.new_page()
                 def record_page_error(page_name, exc):
                     result.setdefault("page_errors", []).append({
@@ -286,7 +299,7 @@ def main():
                         "stack": getattr(exc, "stack", None) or str(exc),
                     })
                 def record_console_error(page_name, message):
-                    if message.type == "error":
+                    if message.type == "error" and "favicon.ico" not in message.text:
                         result.setdefault("console_errors", []).append({
                             "page": page_name,
                             "text": message.text,
@@ -341,42 +354,71 @@ def main():
                 state = game_page.evaluate("window.__ICE_SNAKE_LAB__.snapshot()")
                 events = game_page.evaluate("window.__ICE_SNAKE_LAB__.events()")
                 log_text = log_data.get("log") or ""
+                pickups = [event for event in events if event.get("kind") == "pickup"]
+                gifts = [event for event in pickups if event.get("type") == "gift"]
+                non_gifts = [event.get("type") for event in pickups if event.get("type") != "gift"]
+                game_overs = [event for event in events if event.get("kind") == "game-over"]
+                actual_turns = [event for event in events if event.get("kind") == "turn"]
+                confirmed_turns = len(re.findall(
+                    r"ПОВОРОТ ПОДТВЕРЖДЁН: (?:ArrowUp|ArrowDown|ArrowLeft|ArrowRight)", log_text
+                ))
+                autopilot_abort = (
+                    "Защитная остановка" in log_text
+                    or "ЗАЩИТНАЯ ОСТАНОВКА" in log_text
+                    or "planner-requested-180-degree-turn" in log_text
+                )
                 result.update({
-                    "overall": "completed",
-                    "stage": "completed",
                     "state": state,
                     "status": log_data.get("status") or "",
+                    "storage_keys": log_data.get("storage_keys", []),
                     "cdp_commands": log_text.count("ВВОД ПОДТВЕРЖДЁН CDP"),
+                    "confirmed_turns": confirmed_turns,
                     "reverse_guard": log_text.count("ЗАЩИТА ОТ РАЗВОРОТА"),
-                    "autopilot_abort": (
-                        "Защитная остановка" in log_text
-                        or "planner-requested-180-degree-turn" in log_text
-                    ),
+                    "autopilot_abort": autopilot_abort,
+                    "gift_pickups": len(gifts),
+                    "non_gift_pickups": non_gifts,
+                    "actual_turns": len(actual_turns),
+                    "game_over_events": game_overs,
                     "simulator_events": events[-300:],
                     "extension_log_tail": log_text[-24000:],
                 })
+
+                failures = []
                 if result["page_errors"]:
-                    result["overall"] = "failed"
-                    result["error"] = "Browser JavaScript errors were observed"
-                elif result["cdp_commands"] < 1:
-                    result["overall"] = "failed"
-                    result["error"] = (
-                        "No genuine CDP keypresses were found in the extension log"
-                    )
-                elif result["autopilot_abort"]:
-                    result["overall"] = "failed"
-                    result["error"] = "Autopilot protective stop; inspect the report"
+                    failures.append("browser JavaScript errors")
+                if result["cdp_commands"] < 1:
+                    failures.append("no confirmed CDP keyboard commands")
+                if result["confirmed_turns"] < 1 or result["actual_turns"] < 1:
+                    failures.append("no confirmed direction change")
+                if result["autopilot_abort"]:
+                    failures.append("autopilot protective stop")
+                if game_overs or state.get("mode") == "over":
+                    failures.append("snake collided / game over")
+                if state.get("mode") != "playing":
+                    failures.append(f"unexpected final game mode: {state.get('mode')}")
+                if state.get("time", 0) < args.seconds * 1000 * 0.85:
+                    failures.append("simulated game time did not reach the requested duration")
+                if not gifts:
+                    failures.append("no gift was collected during the test")
+                if non_gifts:
+                    failures.append(f"non-gift pickup detected: {non_gifts}")
+                if state.get("score") != len(gifts) * 500:
+                    failures.append("score does not match gift-only pickups")
+                result["overall"] = "failed" if failures else "passed"
+                result["failures"] = failures
+                result["error"] = "; ".join(failures) if failures else None
+                result["stage"] = "completed"
                 atomic_report(report_path, result)
                 print(json.dumps({
                     key: result.get(key) for key in [
-                        "overall", "extension", "seconds", "scenario", "seed",
-                        "status", "cdp_commands", "reverse_guard", "autopilot_abort",
-                        "state", "error"
+                        "overall", "extension", "seconds_requested", "scenario", "seed",
+                        "cdp_commands", "confirmed_turns", "actual_turns", "gift_pickups",
+                        "non_gift_pickups", "autopilot_abort", "state", "failures", "error"
                     ]
                 }, ensure_ascii=False, indent=2))
 
     except Exception as exc:
-        result["overall"] = "failed"
+        result["overall"] = "blocked" if "ERR_BLOCKED_BY_ADMINISTRATOR" in str(exc) else "failed"
         result["error"] = f"{type(exc).__name__}: {exc}"
         result["traceback"] = traceback.format_exc()
         # Best-effort diagnostics even if startup failed after a page was created.
@@ -415,7 +457,7 @@ def main():
             result["error"] = result.get("error") or "Test ended before completion"
         atomic_report(report_path, result)
 
-    if result["overall"] != "completed":
+    if result["overall"] != "passed":
         sys.exit(1)
     if result.get("cleanup_errors") or result.get("server_errors"):
         print("WARNING: test completed, but cleanup reported warnings", file=sys.stderr)

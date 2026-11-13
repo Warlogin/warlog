@@ -81,3 +81,13 @@ The first local v0.1.4 run on extension v0.6.10 did start and control the game:
 This is not a valid 60-second extension result. Code review found the harness opened the extension bridge in a second tab and then waited while the game tab remained in the background. Chromium can throttle animation frames in background tabs. Runner v0.1.5 brings the game tab to the foreground before the timed run, adds background-throttling suppression flags, and records visibility and wall-clock duration. The extension ZIP and autopilot code are not changed.
 
 The next retest must use the same extension ZIP and parameters (`60`, `edge-gifts`, seed `2026`). If simulated time is still substantially below wall-clock time, stop and inspect the JSON rather than interpreting it as an autopilot failure.
+
+
+## Extension smoke v0.6.10 — report review and simulator correction
+
+- Local runner v0.1.5 report: the game tab remained `visible` before and after the run; wall-clock wait was 60.016 s. The game itself ended at simulated time 18.6527 s after a wall collision. This is a gameplay failure in the tested extension/simulator combination, not background-tab throttling.
+- v0.6.10 recorded 44 CDP commands, 39 confirmed direction changes, 9 gift pickups (4500 points), zero non-gift pickups, zero page JavaScript errors, and no autopilot protective abort. Final state: `mode=over`, direction `ArrowUp`, queued `ArrowLeft`, head cell `(9,-1)`.
+- Review of `sim/engine.mjs` found a test-harness defect: each 1.8 s spawn interval replaced an uncollected `gift` with the next one. The edge scenario therefore removed the first `(0,0)` gift before the snake could reach it. The report cannot be used to judge whether the extension missed that gift.
+- Simulator v0.1.6 keeps an active gift until pickup or expiry and adds regression tests. This corrects the harness only; it does not modify any extension ZIP.
+- The earlier v0.6.7 report was produced by runner v0.1.3, without foreground timing safeguards, and logged `CANVAS FALLBACK ... клавиши не отправляю`; it is not a valid same-conditions control comparison. v0.6.7 remains the user's stable baseline, but must be rerun with the corrected v0.1.6 harness before comparative conclusions.
+- Release gate remains closed. Do not install v0.6.10. Next compare v0.6.7 and v0.6.10 with the same corrected runner, seed 2026, `edge-gifts` scenario, and 60 s run.

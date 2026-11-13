@@ -12,6 +12,8 @@
 - Появление подарков по фиксированному seed: обычный, все 52 краевые клетки, четыре угла. Подарок = +500.
 - Моделирование проблемных последовательностей поворотов: `Right → Up → Left`, `Up → Left → Down`.
 
+В сценариях `edge-gifts` и `corners` стенд сохраняет активный подарок до подбора или истечения TTL; следующий подарок не заменяет его досрочно. Это явное допущение испытательной модели, а не подтверждённое правило оригинальной игры.
+
 **Не подтверждены относительно оригинальной игры:** алгоритм спавна и исчезновения предметов, точные размеры коллизий, тайминг очереди поворотов, поведение бонусов, механика роста, анимационные задержки, реальные картинки и часть правил окончания. Их необходимо калибровать по оригинальному JavaScript или реальным записям кадров.
 
 ## Быстрый запуск
@@ -74,3 +76,8 @@ After replacing the lab folder with this revision, run the same command as befor
 The first v0.1.4 run confirmed START, 9 CDP commands, 6 confirmed turns, 2 gift pickups (1000 points), no non-gift pickups, no protective stop, and the game remained active. However, simulated game time advanced only 6116.8 ms during a 60-second wall-clock wait. The bridge page had become the active tab while the game ran in the background. Chromium may throttle animation frames in background tabs.
 
 Runner v0.1.5 brings the game tab to the foreground before the timed run, disables background timer/render throttling, and records tab visibility and wall-clock duration. This changes only the test harness, not the extension ZIP or autopilot.
+
+
+### Simulator v0.1.6 — persistent edge gifts
+
+The edge/corner scenarios now keep an active gift until pickup or expiry. The previous fixed spawn interval silently replaced an uncollected gift, creating false edge-miss failures. Two regression tests cover persistence and replacement only after expiry. This is a deliberate test-harness assumption; original-game spawn cadence remains unverified.

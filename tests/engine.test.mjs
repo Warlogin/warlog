@@ -76,6 +76,27 @@ test('edge gift scenario cycles through all perimeter positions',()=>{
  for(let i=0;i<52;i++){s.items=[];s.spawnGift();cells.push(s.items.at(-1).cell);}
  assert.equal(new Set(cells.map(p=>`${p.x},${p.y}`)).size,52);
 });
+test('scheduled gift spawn does not replace an uncollected edge gift',()=>{
+ const s=game({scenario:'edge-gifts',giftIntervalMs:1800,giftTtlMs:14000,speed:0});
+ advance(s,1000);
+ const first={...s.items.find(x=>x.kind==='gift').cell};
+ assert.deepEqual(first,{x:0,y:0});
+ advance(s,1800);
+ assert.deepEqual(s.items.find(x=>x.kind==='gift').cell,first);
+ assert.equal(s.events.filter(x=>x.kind==='spawn'&&x.type==='gift').length,1);
+ assert.equal(s.giftCounter,1);
+});
+test('next edge gift appears only after the previous gift expires',()=>{
+ const s=game({scenario:'edge-gifts',giftIntervalMs:1000,giftTtlMs:1500,speed:0});
+ advance(s,1000);
+ const first={...s.items.find(x=>x.kind==='gift').cell};
+ advance(s,1000);
+ assert.deepEqual(s.items.find(x=>x.kind==='gift').cell,first);
+ advance(s,1000);
+ const gifts=s.items.filter(x=>x.kind==='gift');
+ assert.equal(gifts.length,1);
+ assert.deepEqual(gifts[0].cell,{x:1,y:0});
+});
 test('corner scenario covers all four corners before repeating',()=>{
  const s=game({scenario:'corners'});s.items=[];const cells=[];
  for(let i=0;i<4;i++){s.items=[];s.spawnGift();cells.push(s.items.at(-1).cell);}

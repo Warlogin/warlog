@@ -11,8 +11,15 @@ required = [
     '"--disable-backgrounding-occluded-windows"',
     'game_visibility_before_run',
     'wall_seconds_elapsed',
+    '--executable-path',
+    'game_over_events',
+    'snake collided / game over',
+    'simulated game time did not reach the requested duration',
+    'non_gift_pickups',
+    'state.get("score") != len(gifts) * 500',
 ]
 missing = [item for item in required if item not in source]
 assert not missing, f"Missing foreground-throttling safeguards: {missing}"
 assert source.index("game_page.bring_to_front()") < source.index("game_page.wait_for_timeout(args.seconds * 1000)")
-print("PASS: runner keeps the game tab foreground and records wall-clock timing")
+assert '"runner_version": "0.1.6"' in source, "Runner version is not 0.1.6"
+print("PASS: runner foreground timing and strict release gate checks are present")

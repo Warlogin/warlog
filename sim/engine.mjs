@@ -71,6 +71,10 @@ export class IceSnakeSimulator {
     return item;
   }
   spawnGift() {
+    // Keep an active gift in place until it is collected or expires.
+    // The previous model silently replaced it at the next spawn interval,
+    // creating false edge-miss failures in extension smoke tests.
+    if (this.items.some(item => item.kind === 'gift')) return null;
     const forbidden=new Set([`${this.cell.x},${this.cell.y}`,...this.items.map(x=>`${x.cell.x},${x.cell.y}`)]);
     let list;
     if(this.config.scenario==='edge-gifts')list=EDGE_CELLS;
@@ -81,7 +85,8 @@ export class IceSnakeSimulator {
     const chosen=Array.from({length:list.length},(_,i)=>list[(start+i)%list.length])
       .find(c=>!forbidden.has(`${c.x},${c.y}`));
     this.giftCounter++;
-    if(chosen)this.spawn('gift',chosen,this.config.giftTtlMs);
+    if(chosen)return this.spawn('gift',chosen,this.config.giftTtlMs);
+    return null;
   }
   collect() {
     const head=this.position();
