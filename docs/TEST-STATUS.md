@@ -91,3 +91,16 @@ The next retest must use the same extension ZIP and parameters (`60`, `edge-gift
 - Simulator v0.1.6 keeps an active gift until pickup or expiry and adds regression tests. This corrects the harness only; it does not modify any extension ZIP.
 - The earlier v0.6.7 report was produced by runner v0.1.3, without foreground timing safeguards, and logged `CANVAS FALLBACK ... клавиши не отправляю`; it is not a valid same-conditions control comparison. v0.6.7 remains the user's stable baseline, but must be rerun with the corrected v0.1.6 harness before comparative conclusions.
 - Release gate remains closed. Do not install v0.6.10. Next compare v0.6.7 and v0.6.10 with the same corrected runner, seed 2026, `edge-gifts` scenario, and 60 s run.
+
+## Runner v0.1.7 — исправление подсчёта подтверждённых поворотов — 13.11.2026
+
+- Разобран локальный отчёт extension-smoke-v0611-v016.json для ZIP ice-snake-bot-v0.6.11-fast-turn-confirmation.zip: 60 секунд, 18 подборов gift, 9000 очков, 0 посторонних подборов, 87 фактических поворотов симулятора, без Game Over и защитной остановки.
+- Отчёт ошибочно показывал confirmed_turns=0. Причина — регулярное выражение раннера искало только старую строку «ПОВОРОТ ПОДТВЕРЖДЁН: Arrow...», но текущий журнал пишет фактическое подтверждение как «ПОВОРОТ ПОДТВЕРЖДЁН ПО ТРАЕКТОРИИ: Arrow...».
+- Раннер v0.1.7 считает подтверждением именно изменение траектории; предварительное сообщение «ПОВОРОТ ПОДТВЕРЖДЁН БРАУЗЕРОМ» отдельно не засчитывается. Сохранена совместимость со старым общим форматом подтверждения.
+- Добавлены Python regression tests для обоих форматов и для исключения предварительного подтверждения браузером; тесты включены в GitHub Actions.
+- Это исправление только испытательного стенда. ZIP расширения не менялся и не публиковался.
+- v0.6.7 остаётся стабильной базой. v0.6.11 не считается одобренной к установке по одному этому прогону.
+
+### Следующий обязательный шаг
+
+Дождаться GitHub Actions для runner v0.1.7. При успешном CI повторить локальный extension smoke одним и тем же раннером v0.1.7 для стабильной v0.6.7 и кандидата v0.6.11: --seconds 60 --scenario edge-gifts --seed 2026. Сравнить счёт, подбор только gift, фактические и подтверждённые повороты, отсутствие столкновений и защитной остановки. До сравнительного прогона release gate закрыт.
