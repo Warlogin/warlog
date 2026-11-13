@@ -1,6 +1,6 @@
 import unittest
 
-from scripts.extension_smoke import count_confirmed_turns
+from scripts.extension_smoke import count_confirmed_turns, PROBE_JS
 from scripts.gift_skip_policy import assess_expired_gift_skips
 
 
@@ -104,6 +104,14 @@ class GiftSkipPolicyTests(unittest.TestCase):
         self.assertEqual(accepted, 3)
         self.assertEqual(len(diagnostics), 3)
         self.assertTrue(any("exceed the allowance of 2" in item for item in failures))
+
+
+class LiveLogProbeTests(unittest.TestCase):
+    def test_probe_reads_worker_memory_before_storage_fallback(self):
+        self.assertIn("type: 'GET_LOG'", PROBE_JS)
+        self.assertIn("worker-memory", PROBE_JS)
+        self.assertIn("storage-fallback", PROBE_JS)
+        self.assertIn("gameTabId = tab.id", PROBE_JS)
 
 
 if __name__ == "__main__":

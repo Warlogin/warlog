@@ -64,6 +64,7 @@ PROBE_HTML = """<!doctype html>
 PROBE_JS = r"""
 (() => {
   const result = document.getElementById('result');
+  let gameTabId = null;
   const send = (message) => new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(message, response => {
       const err = chrome.runtime.lastError;
@@ -77,20 +78,33 @@ PROBE_JS = r"""
       const tabs = await chrome.tabs.query({});
       const tab = tabs.find(t => t.url && t.url.includes('/games/snake/'));
       if (!tab) throw new Error('Game tab not found in chrome.tabs.query');
+      gameTabId = tab.id;
       const response = await send({type: 'START', tabId: tab.id});
       result.textContent = JSON.stringify({stage: 'start-response', response});
       return response;
     },
     async readLog() {
+      let liveLog = '';
+      let logSource = 'storage-fallback';
+      if (gameTabId !== null) {
+        try {
+          const live = await send({type: 'GET_LOG', tabId: gameTabId});
+          if (live?.ok && typeof live.log === 'string' && live.log.length) {
+            liveLog = live.log;
+            logSource = 'worker-memory';
+          }
+        } catch (_) {}
+      }
       const data = await chrome.storage.local.get(null);
       const entries = Object.entries(data);
       const textEntries = entries.filter(([, value]) => typeof value === 'string');
-      const preferredLog = data.lastSnakeLog || data.snakeLog || data.log || '';
+      const preferredLog = liveLog || data.lastSnakeLog || data.snakeLog || data.log || '';
       const fallbackLog = textEntries
         .filter(([key, value]) => /log|journal|diagnostic/i.test(key) || /АВТОПИЛОТ|CDP|ПОДТВЕРЖДЁН|ЗАЩИТА/.test(value))
         .map(([key, value]) => '[' + key + ']\\n' + value).join('\\n');
       return {
         log: preferredLog || fallbackLog,
+        log_source: liveLog ? logSource : 'storage-fallback',
         status: data.lastSnakeStatus || data.snakeStatus || data.status || '',
         storage_keys: Object.keys(data)
       };
@@ -239,7 +253,7 @@ def main():
 
     report_path = args.report.expanduser().resolve()
     result = {
-        "runner_version": "0.1.9",
+        "runner_version": "0.1.10",
         "overall": "running",
         "stage": "initializing",
         "extension": args.extension_zip.name,
@@ -398,6 +412,7 @@ def main():
                     "state": state,
                     "status": log_data.get("status") or "",
                     "storage_keys": log_data.get("storage_keys", []),
+                    "log_source": log_data.get("log_source", "storage-fallback"),
                     "cdp_commands": log_text.count("ВВОД ПОДТВЕРЖДЁН CDP"),
                     "confirmed_turns": confirmed_turns,
                     "reverse_guard": log_text.count("ЗАЩИТА ОТ РАЗВОРОТА"),
@@ -450,7 +465,7 @@ def main():
                         "cdp_commands", "confirmed_turns", "actual_turns", "gift_spawns",
                         "gift_pickups", "gift_expirations", "accepted_safe_gift_skips",
                         "gift_skip_diagnostics", "active_gifts", "non_gift_pickups",
-                        "autopilot_abort", "state", "failures", "error"
+                        "log_source", "autopilot_abort", "state", "failures", "error"
                     ]
                 }, ensure_ascii=False, indent=2))
 

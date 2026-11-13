@@ -90,3 +90,10 @@ The edge/corner scenarios now keep an active gift until pickup or expiry. The pr
 - An expired gift without matching evidence remains a failure. More than two objectively blocked gifts also remains a failure.
 - Collision/game-over, non-gift pickups, protective stops, missing confirmed input, and score/accounting mismatches remain hard failures.
 - Accepted safe skips are reported separately as accepted_safe_gift_skips; they are not hidden or counted as pickups.
+
+
+### Extension smoke runner v0.1.10 — live worker log snapshot
+
+- The extension-origin bridge now requests GET_LOG from the MV3 worker before falling back to chrome.storage.local.
+- This captures the in-memory session log at the end of the run instead of relying on the worker's periodic three-second storage flush.
+- The report records log_source so a storage fallback is visible and a potentially stale log is not mistaken for a complete live snapshot.
