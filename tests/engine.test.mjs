@@ -111,9 +111,12 @@ test('different seeds change random sequence',()=>{
  const a=game({seed:123456}),b=game({seed:987654});a.spawnGift();b.spawnGift();
  assert.notDeepEqual(a.items.find(i=>i.kind==='gift').cell,b.items.find(i=>i.kind==='gift').cell);
 });
-test('expired gifts are removed from simulation',()=>{
+test('expired gifts are removed and their expiry cell is recorded',()=>{
  const s=game({giftTtlMs:100});s.spawn('gift',{x:12,y:5},100);advance(s,150);
  assert.equal(s.items.filter(x=>x.kind==='gift').length,0);
+ const expired=s.events.find(x=>x.kind==='expire'&&x.type==='gift');
+ assert.ok(expired);
+ assert.deepEqual(expired.cell,{x:12,y:5});
 });
 test('turns are rejected when game is not active',()=>{
  const s=new IceSnakeSimulator();assert.equal(s.key('ArrowUp'),false);assert.equal(s.queued,null);
