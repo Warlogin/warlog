@@ -368,11 +368,8 @@ def main():
         print(result["traceback"], file=sys.stderr)
 
     finally:
-        try:
-            if context:
-                context.close()
-        except Exception as exc:
-            result.setdefault("cleanup_errors", []).append(f"browser close: {exc!r}")
+        # Exiting the sync_playwright context already closes Chromium. Do not
+        # call context.close() again after Playwright has torn down its pipe.
         stop_http_server(server, thread, stop_requested, server_errors)
         result["server_errors"] = server_errors
         result["finished_at"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
