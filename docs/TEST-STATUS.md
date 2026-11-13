@@ -68,3 +68,16 @@
 - Локальный extension smoke runner v0.1.4 запущен с системным Chromium. Он остановился на открытии локальной страницы с `net::ERR_BLOCKED_BY_ADMINISTRATOR`. Это зафиксировано как `overall=blocked`, а не как PASS/FAIL алгоритма. До загрузки service worker и START не дошло.
 - Для следующего прогона подготовлен пакет `ice-snake-test-lab-v0.1.4.zip`; он усиливает критерии успешного прогона и сохраняет отчёт при блокировке.
 - Release gate закрыт: не устанавливать v0.6.10. Стабильная контрольная версия — v0.6.7.
+
+
+## Runner v0.1.5 — foreground timing correction
+
+The first local v0.1.4 run on extension v0.6.10 did start and control the game:
+- 9 CDP commands, 6 confirmed turns, 7 simulator turns;
+- 2 gift pickups (1000 points), no non-gift pickups;
+- no protective stop, final mode still `playing`;
+- simulated game time only 6116.8 ms after a 60-second wall-clock wait.
+
+This is not a valid 60-second extension result. Code review found the harness opened the extension bridge in a second tab and then waited while the game tab remained in the background. Chromium can throttle animation frames in background tabs. Runner v0.1.5 brings the game tab to the foreground before the timed run, adds background-throttling suppression flags, and records visibility and wall-clock duration. The extension ZIP and autopilot code are not changed.
+
+The next retest must use the same extension ZIP and parameters (`60`, `edge-gifts`, seed `2026`). If simulated time is still substantially below wall-clock time, stop and inspect the JSON rather than interpreting it as an autopilot failure.

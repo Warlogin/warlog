@@ -68,3 +68,9 @@ After replacing the lab folder with this revision, run the same command as befor
 ## Оговорка по надёжности
 
 Даже несколько успешных тестовых партий на этом стенде **не гарантируют** работоспособности расширения на сайте производителя. Главное улучшение качества — выявление регрессий до выхода версии и тесты настоящего CDP ввода. Для полного совпадения следует сверить оригинальную JS-механику, если её удастся получить законно через страницу игры.
+
+### Extension smoke runner v0.1.5 — foreground timing
+
+The first v0.1.4 run confirmed START, 9 CDP commands, 6 confirmed turns, 2 gift pickups (1000 points), no non-gift pickups, no protective stop, and the game remained active. However, simulated game time advanced only 6116.8 ms during a 60-second wall-clock wait. The bridge page had become the active tab while the game ran in the background. Chromium may throttle animation frames in background tabs.
+
+Runner v0.1.5 brings the game tab to the foreground before the timed run, disables background timer/render throttling, and records tab visibility and wall-clock duration. This changes only the test harness, not the extension ZIP or autopilot.

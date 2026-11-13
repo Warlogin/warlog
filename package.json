@@ -1,6 +1,6 @@
 {
   "name": "ice-snake-test-lab",
-  "version": "0.1.1",
+  "version": "0.1.5",
   "private": true,
   "type": "module",
   "description": "Deterministic visual browser harness for Dobry Cola Ice Snake extension (independent approximation)",
@@ -10,5 +10,7 @@
     "test:browser": "python3 scripts/browser_smoke.py",
     "test:extension": "python3 scripts/extension_smoke.py --extension-zip"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }

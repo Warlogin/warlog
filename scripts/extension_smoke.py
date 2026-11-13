@@ -221,7 +221,7 @@ def main():
 
     report_path = args.report.expanduser().resolve()
     result = {
-        "runner_version": "0.1.3",
+        "runner_version": "0.1.5",
         "overall": "running",
         "stage": "initializing",
         "extension": args.extension_zip.name,
@@ -272,6 +272,9 @@ def main():
                     args=[
                         f"--disable-extensions-except={extension}",
                         f"--load-extension={extension}",
+                        "--disable-background-timer-throttling",
+                        "--disable-renderer-backgrounding",
+                        "--disable-backgrounding-occluded-windows",
                     ],
                     viewport={"width": 1360, "height": 960},
                 )
@@ -320,7 +323,18 @@ def main():
                 atomic_report(report_path, result)
 
                 result["stage"] = "run-game"
+                # The extension bridge is a second tab. Keep the game tab foreground:
+                # Chromium can throttle requestAnimationFrame in background tabs.
+                game_page.bring_to_front()
+                result["game_visibility_before_run"] = game_page.evaluate(
+                    "document.visibilityState"
+                )
+                wall_started = time.monotonic()
                 game_page.wait_for_timeout(args.seconds * 1000)
+                result["wall_seconds_elapsed"] = round(time.monotonic() - wall_started, 3)
+                result["game_visibility_after_run"] = game_page.evaluate(
+                    "document.visibilityState"
+                )
 
                 result["stage"] = "read-extension-log"
                 log_data = probe_page.evaluate("window.ICE_SNAKE_LAB_PROBE.readLog()")
