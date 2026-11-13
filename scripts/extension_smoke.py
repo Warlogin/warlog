@@ -29,8 +29,8 @@ GAME_URL_MARKER = "https://dobrycola-promo.ru/games/snake/"
 # Count only observed trajectory changes, not the earlier CDP/browser acknowledgement.
 # Keep the legacy generic message for older extension builds.
 CONFIRMED_TURN_RE = re.compile(
-    r"ПОВОРОТ ПОДТВЕРЖДЁН(?: ПО ТРАЕКТОРИИ)?:\\s*"
-    r"(?:ArrowUp|ArrowDown|ArrowLeft|ArrowRight)\\b"
+    r"ПОВОРОТ ПОДТВЕРЖДЁН(?: ПО ТРАЕКТОРИИ)?:\s*"
+    r"(?:ArrowUp|ArrowDown|ArrowLeft|ArrowRight)\b"
 )
 
 
