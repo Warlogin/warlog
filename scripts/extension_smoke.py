@@ -221,7 +221,7 @@ def main():
 
     report_path = args.report.expanduser().resolve()
     result = {
-        "runner_version": "0.1.2",
+        "runner_version": "0.1.3",
         "overall": "running",
         "stage": "initializing",
         "extension": args.extension_zip.name,
@@ -236,6 +236,7 @@ def main():
         "extension_log_tail": "",
         "simulator_events": [],
         "page_errors": [],
+        "console_errors": [],
         "server_errors": [],
     }
     atomic_report(report_path, result)
@@ -276,14 +277,14 @@ def main():
                 )
                 game_page = context.new_page()
                 def record_page_error(page_name, exc):
-                    result["page_errors"].append({
+                    result.setdefault("page_errors", []).append({
                         "page": page_name,
                         "message": getattr(exc, "message", str(exc)),
                         "stack": getattr(exc, "stack", None) or str(exc),
                     })
                 def record_console_error(page_name, message):
                     if message.type == "error":
-                        result["console_errors"].append({
+                        result.setdefault("console_errors", []).append({
                             "page": page_name,
                             "text": message.text,
                             "location": message.location,
