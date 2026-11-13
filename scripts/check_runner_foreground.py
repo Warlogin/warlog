@@ -3,6 +3,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 source = (ROOT / "scripts" / "extension_smoke.py").read_text(encoding="utf-8")
+policy_source = (ROOT / "scripts" / "gift_skip_policy.py").read_text(encoding="utf-8")
+combined_source = source + "\n" + policy_source
 
 required = [
     'game_page.bring_to_front()',
@@ -27,7 +29,7 @@ required = [
     'gift spawn/pickup/expiry accounting mismatch',
     'state.get("score") != len(gifts) * 500',
 ]
-missing = [item for item in required if item not in source]
+missing = [item for item in required if item not in combined_source]
 assert not missing, f"Missing foreground-throttling safeguards: {missing}"
 assert source.index("game_page.bring_to_front()") < source.index("game_page.wait_for_timeout(args.seconds * 1000)")
 assert '"runner_version": "0.1.9"' in source, "Runner version is not 0.1.9"
