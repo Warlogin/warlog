@@ -55,6 +55,12 @@ python3 scripts/extension_smoke.py \
 
 Проводите тесты в обычной собственной среде Chromium. Ограничения корпоративной политики браузера могут запрещать расширения и локальные адреса.
 
+### Extension smoke runner v0.1.1
+
+The extension test uses a temporary extension-origin bridge page to send the START message and read `chrome.storage.local`. It does not call `Worker.evaluate()`, because MV3 service workers can stop between Playwright operations. The report is written atomically before launch and again in a `finally` block, including stage, traceback, browser state, simulator events, and any readable extension log on failure. Windows HTTP server shutdown is also guarded.
+
+After replacing the lab folder with this revision, run the same command as before. The report is saved at the exact path passed to `--report`, even if the browser test fails.
+
 ## Автоматическая проверка GitHub
 
 `.github/workflows/check.yml` запускает Node.js тесты и тест браузера на GitHub Actions. Прогон расширения с закрытым исходным кодом запускается **локально** с ZIP; он не загружается на GitHub.

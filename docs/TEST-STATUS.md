@@ -17,3 +17,10 @@
 4. После минимум 60 секунд нет ложного `planner-requested-180-degree-turn`.
 5. Проверка подарков в углах и на краях не вызывает гибели и пропусков.
 6. Проверка на исходном сайте после симулятора обязательна.
+
+## Harness correction — 13.11.2026
+
+- The first local extension-smoke attempt failed before the START acknowledgement: Playwright lost its direct connection to the MV3 service-worker target (`Worker.evaluate: Could not establish connection`). The HTTP server also raised a Windows socket shutdown error during exception unwinding.
+- Runner v0.1.1 replaces direct worker evaluation with a temporary extension-origin bridge page that sends the same `START` runtime message and reads `chrome.storage.local`.
+- A JSON report is now created before browser launch and atomically updated on every exit path, including failure. Browser and HTTP server cleanup are handled in `finally`.
+- This is a harness fix only. It does not modify or certify extension v0.6.9.

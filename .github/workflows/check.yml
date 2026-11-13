@@ -31,3 +31,5 @@ jobs:
             *.png
             *.json
           if-no-files-found: ignore
+      - name: Compile Python browser harnesses
+        run: python3 -m py_compile scripts/server.py scripts/generate_assets.py scripts/browser_smoke.py scripts/extension_smoke.py
