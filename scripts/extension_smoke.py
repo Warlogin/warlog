@@ -26,6 +26,17 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 GAME_URL_MARKER = "https://dobrycola-promo.ru/games/snake/"
 
+# Count only observed trajectory changes, not the earlier CDP/browser acknowledgement.
+# Keep the legacy generic message for older extension builds.
+CONFIRMED_TURN_RE = re.compile(
+    r"ПОВОРОТ ПОДТВЕРЖДЁН(?: ПО ТРАЕКТОРИИ)?:\\s*"
+    r"(?:ArrowUp|ArrowDown|ArrowLeft|ArrowRight)\\b"
+)
+
+
+def count_confirmed_turns(log_text: str) -> int:
+    return len(CONFIRMED_TURN_RE.findall(log_text))
+
 
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -359,9 +370,7 @@ def main():
                 non_gifts = [event.get("type") for event in pickups if event.get("type") != "gift"]
                 game_overs = [event for event in events if event.get("kind") == "game-over"]
                 actual_turns = [event for event in events if event.get("kind") == "turn"]
-                confirmed_turns = len(re.findall(
-                    r"ПОВОРОТ ПОДТВЕРЖДЁН: (?:ArrowUp|ArrowDown|ArrowLeft|ArrowRight)", log_text
-                ))
+                confirmed_turns = count_confirmed_turns(log_text)
                 autopilot_abort = (
                     "Защитная остановка" in log_text
                     or "ЗАЩИТНАЯ ОСТАНОВКА" in log_text
