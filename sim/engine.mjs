@@ -107,6 +107,10 @@ export class IceSnakeSimulator {
     // Limit huge wall-clock gaps, as a browser game usually does while tab is hidden.
     const delta=Math.max(0,Math.min(100,Number(dtMs)||0));
     this.time+=delta;
+    const expiredItems=this.items.filter(item=>item.expiresAt<=this.time);
+    for(const item of expiredItems){
+      this.events.push({time:this.time,kind:'expire',type:item.kind,cell:{...item.cell}});
+    }
     this.items=this.items.filter(item=>item.expiresAt>this.time);
     if(this.time>=this.spawnAt){this.spawnGift();this.spawnAt+=this.config.giftIntervalMs;}
     let left=delta*this.speed/1000;
