@@ -257,7 +257,7 @@ def main():
 
     report_path = args.report.expanduser().resolve()
     result = {
-        "runner_version": "0.1.13",
+        "runner_version": "0.1.14",
         "overall": "running",
         "stage": "initializing",
         "extension": args.extension_zip.name,
@@ -390,10 +390,26 @@ def main():
                 )
 
                 result["stage"] = "read-extension-log"
-                log_data = probe_page.evaluate("window.ICE_SNAKE_LAB_PROBE.readLog()")
-                state = game_page.evaluate("window.__ICE_SNAKE_LAB__.snapshot()")
-                events = game_page.evaluate("window.__ICE_SNAKE_LAB__.events()")
-                log_text = log_data.get("log") or ""
+                # The last simulator turn may be visible 1-2 frames before
+                # the MV3 worker logs its trajectory confirmation. Do not
+                # fail based on that instantaneous asynchronous read race:
+                # poll a short, bounded settling window, and still require
+                # strict equality of all turns at the final snapshot.
+                settle_checks = 0
+                for settle_check in range(9):
+                    log_data = probe_page.evaluate("window.ICE_SNAKE_LAB_PROBE.readLog()")
+                    state = game_page.evaluate("window.__ICE_SNAKE_LAB__.snapshot()")
+                    events = game_page.evaluate("window.__ICE_SNAKE_LAB__.events()")
+                    log_text = log_data.get("log") or ""
+                    simulator_turns = sum(event.get("kind") == "turn" for event in events)
+                    if count_confirmed_turns(log_text) == simulator_turns:
+                        settle_checks = settle_check
+                        break
+                    if settle_check < 8:
+                        game_page.wait_for_timeout(100)
+                    settle_checks = settle_check + 1
+                result["turn_sync_settle_checks"] = settle_checks
+                result["turn_sync_settle_ms_max"] = 800
                 pickups = [event for event in events if event.get("kind") == "pickup"]
                 gifts = [event for event in pickups if event.get("type") == "gift"]
                 gift_spawns = [event for event in events if event.get("kind") == "spawn" and event.get("type") == "gift"]
