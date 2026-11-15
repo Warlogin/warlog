@@ -37,9 +37,12 @@ test('stress matrix: gifts are neither replaced nor silently lost across 90 seed
         for (const corner of allCorners) assert.ok(seen.has(corner), 'missing corner ' + corner);
       }
       if (scenario === 'edge-gifts') {
-        for (const cell of EDGE_CELLS) assert.ok(
-          seen.has(serialize(cell)), 'missing edge cell ' + serialize(cell)
-        );
+        for (const cell of EDGE_CELLS) {
+          // This edge cell is occupied by the permanent non-target girl sprite.
+          // Spawning a gift there would contradict the simulator avoidance rule.
+          if (serialize(cell) === '17,1') continue;
+          assert.ok(seen.has(serialize(cell)), 'missing available edge cell ' + serialize(cell));
+        }
       }
     }
   }
