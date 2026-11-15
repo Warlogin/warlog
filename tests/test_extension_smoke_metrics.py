@@ -114,5 +114,15 @@ class LiveLogProbeTests(unittest.TestCase):
         self.assertIn("gameTabId = tab.id", PROBE_JS)
 
 
+class FullEvidenceReportTests(unittest.TestCase):
+    def test_runner_persists_full_worker_log_and_simulator_event_history(self):
+        import inspect
+        from scripts import extension_smoke
+        source = inspect.getsource(extension_smoke.main)
+        self.assertIn('"extension_log_full": log_text', source)
+        self.assertIn('"simulator_events": events', source)
+        self.assertNotIn('"simulator_events": events[-300:]', source)
+
+
 if __name__ == "__main__":
     unittest.main()
