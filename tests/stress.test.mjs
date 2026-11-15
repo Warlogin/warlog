@@ -13,7 +13,7 @@ test('stress matrix: gifts are neither replaced nor silently lost across 90 seed
       });
       s.start();
       const seen = new Set();
-      for (let tick = 0; tick < 900; tick++) {
+      for (let tick = 0; tick < 2000; tick++) {
         s.step(100);
         const live = s.items.filter(item => item.kind === 'gift');
         assert.ok(live.length <= 1, scenario + '/' + seed + ': overlapping gifts');
