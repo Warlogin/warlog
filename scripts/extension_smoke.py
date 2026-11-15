@@ -257,7 +257,7 @@ def main():
 
     report_path = args.report.expanduser().resolve()
     result = {
-        "runner_version": "0.1.12",
+        "runner_version": "0.1.13",
         "overall": "running",
         "stage": "initializing",
         "extension": args.extension_zip.name,
@@ -435,7 +435,8 @@ def main():
                     "non_gift_pickups": non_gifts,
                     "actual_turns": len(actual_turns),
                     "game_over_events": game_overs,
-                    "simulator_events": events[-300:],
+                    "simulator_events": events,
+                    "extension_log_full": log_text,
                     "extension_log_tail": log_text[-24000:],
                 })
 
