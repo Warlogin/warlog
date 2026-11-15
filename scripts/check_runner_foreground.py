@@ -25,6 +25,7 @@ required = [
     '--executable-path',
     'game_over_events',
     'extension_log_full',
+    'turn_sync_settle_checks',
     'snake collided / game over',
     'simulated game time did not reach 99% of requested duration',
     'non_gift_pickups',
@@ -42,5 +43,5 @@ required = [
 missing = [item for item in required if item not in combined_source]
 assert not missing, f"Missing foreground-throttling safeguards: {missing}"
 assert source.index("game_page.bring_to_front()") < source.index("game_page.wait_for_timeout(args.seconds * 1000)")
-assert '"runner_version": "0.1.13"' in source, "Runner version is not 0.1.13"
+assert '"runner_version": "0.1.14"' in source, "Runner version is not 0.1.14"
 print("PASS: runner foreground timing and objective gift-skip gate checks are present")
