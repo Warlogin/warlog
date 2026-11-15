@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Ice Snake Lab Mock E2E Negative Control",
+  "version": "0.0.1",
+  "description": "Synthetic extension fixture; does not contain private autopilot code.",
+  "permissions": [
+    "debugger",
+    "scripting",
+    "tabs",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://dobrycola-promo.ru/games/snake/*"
+  ],
+  "background": {
+    "service_worker": "worker.js"
+  }
+}
