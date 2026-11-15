@@ -23,8 +23,10 @@ from urllib.parse import urlparse
 
 try:
     from .gift_skip_policy import assess_expired_gift_skips
+    from .corner_escape_proof import audit_objective_gift_skips
 except ImportError:
     from gift_skip_policy import assess_expired_gift_skips
+    from corner_escape_proof import audit_objective_gift_skips
 
 from playwright.sync_api import sync_playwright
 
@@ -253,7 +255,7 @@ def main():
 
     report_path = args.report.expanduser().resolve()
     result = {
-        "runner_version": "0.1.10",
+        "runner_version": "0.1.11",
         "overall": "running",
         "stage": "initializing",
         "extension": args.extension_zip.name,
@@ -271,6 +273,7 @@ def main():
         "gift_expirations": [],
         "accepted_safe_gift_skips": 0,
         "gift_skip_diagnostics": [],
+        "objective_skip_proofs": [],
         "active_gifts": 0,
         "non_gift_pickups": [],
         "autopilot_abort": False,
@@ -408,6 +411,9 @@ def main():
                         gift_expirations, gift_spawns, log_text, result.get("started_at")
                     )
                 )
+                objective_skip_proofs, objective_skip_failures = audit_objective_gift_skips(
+                    gift_expirations, gift_spawns, events
+                )
                 result.update({
                     "state": state,
                     "status": log_data.get("status") or "",
@@ -422,6 +428,7 @@ def main():
                     "gift_expirations": gift_expirations,
                     "accepted_safe_gift_skips": accepted_safe_gift_skips,
                     "gift_skip_diagnostics": gift_skip_diagnostics,
+                    "objective_skip_proofs": objective_skip_proofs,
                     "active_gifts": len(active_gifts),
                     "non_gift_pickups": non_gifts,
                     "actual_turns": len(actual_turns),
@@ -437,6 +444,10 @@ def main():
                     failures.append("no confirmed CDP keyboard commands")
                 if result["confirmed_turns"] < 1 or result["actual_turns"] < 1:
                     failures.append("no confirmed direction change")
+                if result["confirmed_turns"] != result["actual_turns"]:
+                    failures.append("confirmed turns differ from observed trajectory turns")
+                if result["log_source"] != "worker-memory":
+                    failures.append("live worker log unavailable; turn audit incomplete")
                 if result["autopilot_abort"]:
                     failures.append("autopilot protective stop")
                 if game_overs or state.get("mode") == "over":
@@ -450,6 +461,7 @@ def main():
                 if non_gifts:
                     failures.append(f"non-gift pickup detected: {non_gifts}")
                 failures.extend(gift_skip_failures)
+                failures.extend(objective_skip_failures)
                 if len(gift_spawns) != len(gifts) + len(gift_expirations) + len(active_gifts):
                     failures.append("gift spawn/pickup/expiry accounting mismatch")
                 if state.get("score") != len(gifts) * 500:
@@ -464,7 +476,7 @@ def main():
                         "overall", "extension", "seconds_requested", "scenario", "seed",
                         "cdp_commands", "confirmed_turns", "actual_turns", "gift_spawns",
                         "gift_pickups", "gift_expirations", "accepted_safe_gift_skips",
-                        "gift_skip_diagnostics", "active_gifts", "non_gift_pickups",
+                        "gift_skip_diagnostics", "objective_skip_proofs", "active_gifts", "non_gift_pickups",
                         "log_source", "autopilot_abort", "state", "failures", "error"
                     ]
                 }, ensure_ascii=False, indent=2))
