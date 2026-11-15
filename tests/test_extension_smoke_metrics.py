@@ -124,5 +124,18 @@ class FullEvidenceReportTests(unittest.TestCase):
         self.assertNotIn('"simulator_events": events[-300:]', source)
 
 
+
+class TurnSyncSettlingTests(unittest.TestCase):
+    def test_capture_retries_while_turn_counts_are_not_synchronized(self):
+        import inspect
+        from scripts import extension_smoke
+        source = inspect.getsource(extension_smoke.main)
+        self.assertIn("for settle_check in range(9)", source)
+        self.assertIn("game_page.wait_for_timeout(100)", source)
+        self.assertIn("turn_sync_settle_checks", source)
+        self.assertIn("count_confirmed_turns(log_text) == simulator_turns", source)
+
+
+
 if __name__ == "__main__":
     unittest.main()
