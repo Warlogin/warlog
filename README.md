@@ -97,3 +97,13 @@ The edge/corner scenarios now keep an active gift until pickup or expiry. The pr
 - The extension-origin bridge now requests GET_LOG from the MV3 worker before falling back to chrome.storage.local.
 - This captures the in-memory session log at the end of the run instead of relying on the worker's periodic three-second storage flush.
 - The report records log_source so a storage fallback is visible and a potentially stale log is not mistaken for a complete live snapshot.
+
+
+### Extension smoke runner v0.1.11 — independently proved safe skips
+
+- A planner's \`no-safe-route\` message is **not** independent proof that a gift was unreachable.
+- An expired gift now requires both target-specific no-safe-route evidence AND a separate geometric proof derived from the simulator's event history.
+- The conservative proof currently recognizes an extreme corner that has a persistent adjacent \`girl\` avoidance object. Entering such a corner leaves no legal exit without a prohibited \`girl\` pickup or an immediate 180° reversal.
+- Other missed gifts remain **unproven** until independent safety checks exist and cannot automatically count as safe skips.
+- The live MV3 worker log is required, and the number of confirmed turns must equal the simulator-observed turn count.
+- No ZIP, extension source, or raw user session logs are committed to the public repository.
