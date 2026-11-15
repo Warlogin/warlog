@@ -24,9 +24,11 @@ from urllib.parse import urlparse
 try:
     from .gift_skip_policy import assess_expired_gift_skips
     from .corner_escape_proof import audit_objective_gift_skips
+    from .release_gate import evaluate_release
 except ImportError:
     from gift_skip_policy import assess_expired_gift_skips
     from corner_escape_proof import audit_objective_gift_skips
+    from release_gate import evaluate_release
 
 from playwright.sync_api import sync_playwright
 
@@ -255,7 +257,7 @@ def main():
 
     report_path = args.report.expanduser().resolve()
     result = {
-        "runner_version": "0.1.11",
+        "runner_version": "0.1.12",
         "overall": "running",
         "stage": "initializing",
         "extension": args.extension_zip.name,
@@ -437,35 +439,7 @@ def main():
                     "extension_log_tail": log_text[-24000:],
                 })
 
-                failures = []
-                if result["page_errors"]:
-                    failures.append("browser JavaScript errors")
-                if result["cdp_commands"] < 1:
-                    failures.append("no confirmed CDP keyboard commands")
-                if result["confirmed_turns"] < 1 or result["actual_turns"] < 1:
-                    failures.append("no confirmed direction change")
-                if result["confirmed_turns"] != result["actual_turns"]:
-                    failures.append("confirmed turns differ from observed trajectory turns")
-                if result["log_source"] != "worker-memory":
-                    failures.append("live worker log unavailable; turn audit incomplete")
-                if result["autopilot_abort"]:
-                    failures.append("autopilot protective stop")
-                if game_overs or state.get("mode") == "over":
-                    failures.append("snake collided / game over")
-                if state.get("mode") != "playing":
-                    failures.append(f"unexpected final game mode: {state.get('mode')}")
-                if state.get("time", 0) < args.seconds * 1000 * 0.85:
-                    failures.append("simulated game time did not reach the requested duration")
-                if not gifts:
-                    failures.append("no gift was collected during the test")
-                if non_gifts:
-                    failures.append(f"non-gift pickup detected: {non_gifts}")
-                failures.extend(gift_skip_failures)
-                failures.extend(objective_skip_failures)
-                if len(gift_spawns) != len(gifts) + len(gift_expirations) + len(active_gifts):
-                    failures.append("gift spawn/pickup/expiry accounting mismatch")
-                if state.get("score") != len(gifts) * 500:
-                    failures.append("score does not match gift-only pickups")
+                failures = evaluate_release(result, gift_skip_failures, objective_skip_failures)
                 result["overall"] = "failed" if failures else "passed"
                 result["failures"] = failures
                 result["error"] = "; ".join(failures) if failures else None
