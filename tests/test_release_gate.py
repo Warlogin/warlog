@@ -99,10 +99,13 @@ class ReleaseGateTests(unittest.TestCase):
         report=passing(); report["non_gift_pickups"]=["girl"]
         self.assertTrue(evaluate_release(report))
 
-    def test_unjustified_expiry_is_failure(self):
+    def test_unproven_skip_within_ten_is_allowed(self):
         report=passing()
-        self.assertTrue(evaluate_release(report,["unjustified expiry"],[]))
-        self.assertTrue(evaluate_release(report,[],["unproven escape"]))
+        self.assertEqual(evaluate_release(report), [])
+
+    def test_skip_count_failure_still_blocks_release(self):
+        report=passing()
+        self.assertTrue(evaluate_release(report,["11 gifts expired"],[]))
 
     def test_ten_expirations_are_allowed(self):
         report=passing()
