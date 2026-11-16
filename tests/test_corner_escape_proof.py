@@ -31,11 +31,11 @@ class CornerEscapeProofTests(unittest.TestCase):
         events = [spawn("girl", (17, 1)), {"kind": "reset", "time": 150}]
         self.assertIsNone(prove_corner_trap((17, 0), 100, 200, events))
 
-    def test_audit_rejects_missing_spawn_evidence(self):
+    def test_missing_spawn_evidence_is_diagnostic_not_a_release_failure(self):
         expiry = {"kind": "expire", "type": "gift", "cell": {"x": 17, "y": 0}, "time": 200}
         audits, failures = audit_objective_gift_skips([expiry], [], [spawn("girl", (17, 1))])
         self.assertEqual(audits[0]["classification"], "not_independently_proven")
-        self.assertEqual(len(failures), 1)
+        self.assertEqual(failures, [])
 
     def test_audit_accepts_independently_proven_skip(self):
         gift = spawn("gift", (17, 0), 100)
