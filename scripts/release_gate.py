@@ -79,9 +79,8 @@ def evaluate_release(result, gift_skip_failures=(), objective_skip_failures=()):
             failures.append("gift expiry count differs from simulator event history")
 
         spawned_cells = {
-            (e.get("cell") or {}).get("x", -1),
-            (e.get("cell") or {}).get("y", -1),
-        } for e in event_spawns
+            ((e.get("cell") or {}).get("x", -1), (e.get("cell") or {}).get("y", -1))
+            for e in event_spawns
         }
         scenario = result.get("scenario")
         if scenario == "corners":
