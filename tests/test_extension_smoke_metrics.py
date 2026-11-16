@@ -74,36 +74,35 @@ class GiftSkipPolicyTests(unittest.TestCase):
         self.assertEqual(diagnostics[0]["classification"], "unjustified_expiry")
         self.assertTrue(failures)
 
-    def test_two_objective_skips_are_allowed(self):
-        cells = [{"x": 0, "y": 0}, {"x": 1, "y": 0}]
+    def test_ten_objective_skips_are_allowed(self):
+        cells = [{"x": i, "y": 0} for i in range(10)]
         expirations = [{"time": 12000, "cell": cell} for cell in cells]
         spawns = [{"time": 1000, "cell": cell} for cell in cells]
         lines = [
-            "15:00:25 ЦЕЛИ: gift@234,144 +500; выбрана нет; причина=no-safe-route",
-            "15:00:25 ЦЕЛИ: gift@274,144 +500; выбрана нет; причина=no-safe-route",
+            f"15:00:25 ЦЕЛИ: gift@{234 + 40*i},144 +500; выбрана нет; причина=no-safe-route"
+            for i in range(10)
         ]
         diagnostics, accepted, failures = assess_expired_gift_skips(
             expirations, spawns, "\n".join(lines), self.STARTED_AT
         )
-        self.assertEqual(accepted, 2)
-        self.assertEqual(len(diagnostics), 2)
+        self.assertEqual(accepted, 10)
+        self.assertEqual(len(diagnostics), 10)
         self.assertEqual(failures, [])
 
-    def test_three_objective_skips_exceed_the_allowance(self):
-        cells = [{"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 2, "y": 0}]
+    def test_eleven_objective_skips_exceed_the_allowance(self):
+        cells = [{"x": i, "y": 0} for i in range(11)]
         expirations = [{"time": 12000, "cell": cell} for cell in cells]
         spawns = [{"time": 1000, "cell": cell} for cell in cells]
         lines = [
-            "15:00:25 ЦЕЛИ: gift@234,144 +500; выбрана нет; причина=no-safe-route",
-            "15:00:25 ЦЕЛИ: gift@274,144 +500; выбрана нет; причина=no-safe-route",
-            "15:00:25 ЦЕЛИ: gift@314,144 +500; выбрана нет; причина=no-safe-route",
+            f"15:00:25 ЦЕЛИ: gift@{234 + 40*i},144 +500; выбрана нет; причина=no-safe-route"
+            for i in range(11)
         ]
         diagnostics, accepted, failures = assess_expired_gift_skips(
             expirations, spawns, "\n".join(lines), self.STARTED_AT
         )
-        self.assertEqual(accepted, 3)
-        self.assertEqual(len(diagnostics), 3)
-        self.assertTrue(any("exceed the allowance of 2" in item for item in failures))
+        self.assertEqual(accepted, 11)
+        self.assertEqual(len(diagnostics), 11)
+        self.assertTrue(any("exceed the allowance of 10" in item for item in failures))
 
 
 class LiveLogProbeTests(unittest.TestCase):
