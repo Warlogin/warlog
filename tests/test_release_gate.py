@@ -104,11 +104,39 @@ class ReleaseGateTests(unittest.TestCase):
         self.assertTrue(evaluate_release(report,["unjustified expiry"],[]))
         self.assertTrue(evaluate_release(report,[],["unproven escape"]))
 
-    def test_three_expirations_are_failure(self):
+    def test_ten_expirations_are_allowed(self):
         report=passing()
-        report["gift_spawns"]=26
-        report["gift_expirations"]=report["gift_expirations"]*3
-        self.assertTrue(evaluate_release(report))
+        report["gift_spawns"]=33
+        report["gift_expirations"]=[{"kind":"expire","cell":{"x":17,"y":0},"time":i*1000} for i in range(10)]
+        self.assertEqual(evaluate_release(report), [])
+
+    def test_eleven_expirations_are_failure(self):
+        report=passing()
+        report["gift_spawns"]=34
+        report["gift_expirations"]=[{"kind":"expire","cell":{"x":17,"y":0},"time":i*1000} for i in range(11)]
+        self.assertIn("more than ten expired gifts in the release test", evaluate_release(report))
+
+    def test_12_minute_run_must_exceed_70000_points(self):
+        report=passing()
+        report["seconds_requested"]=720
+        report["state"]["time"]=720010
+        report["wall_seconds_elapsed"]=720
+        report["gift_pickups"]=140
+        report["gift_spawns"]=140
+        report["gift_expirations"]=[]
+        report["state"]["score"]=70000
+        self.assertIn("12-minute run did not exceed 70000 points", evaluate_release(report))
+
+    def test_12_minute_run_over_70000_points_passes_score_gate(self):
+        report=passing()
+        report["seconds_requested"]=720
+        report["state"]["time"]=720010
+        report["wall_seconds_elapsed"]=720
+        report["gift_pickups"]=141
+        report["gift_spawns"]=141
+        report["gift_expirations"]=[]
+        report["state"]["score"]=70500
+        self.assertNotIn("12-minute run did not exceed 70000 points", evaluate_release(report))
 
     def test_missing_pickup_is_failure(self):
         report=passing(); report["gift_pickups"]=0
