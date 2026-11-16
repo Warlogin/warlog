@@ -1,9 +1,8 @@
-"""Independent, conservative proof for objectively unavoidable corner gift skips.
+"""Independent diagnostics for objectively unavoidable corner gift skips.
 
-This checks the simulator's event history, NOT the autopilot's own verdict.
-Only a persistent 'girl' avoidance object blocking one of the two exits of
-an extreme corner is currently considered a proof. Everything else remains
-unproven (and therefore cannot justify an automatic release PASS).
+This checks simulator event history, NOT the autopilot's own verdict. It
+classifies skips as independently proven or unproven. Under the current release
+rule, proof is diagnostic only: up to ten total expired gifts are allowed.
 """
 
 COLS = 18
