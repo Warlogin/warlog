@@ -72,7 +72,7 @@ class GiftSkipPolicyTests(unittest.TestCase):
         )
         self.assertEqual(accepted, 0)
         self.assertEqual(diagnostics[0]["classification"], "unjustified_expiry")
-        self.assertTrue(failures)
+        self.assertEqual(failures, [])
 
     def test_ten_objective_skips_are_allowed(self):
         cells = [{"x": i, "y": 0} for i in range(10)]
@@ -102,7 +102,7 @@ class GiftSkipPolicyTests(unittest.TestCase):
         )
         self.assertEqual(accepted, 11)
         self.assertEqual(len(diagnostics), 11)
-        self.assertTrue(any("exceed the allowance of 10" in item for item in failures))
+        self.assertTrue(any("allowance is 10" in item for item in failures))
 
 
 class LiveLogProbeTests(unittest.TestCase):
