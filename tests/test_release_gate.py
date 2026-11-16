@@ -25,10 +25,27 @@ def passing():
 
 
 def corner_events():
-    return [
+    cells = [(0,0),(17,0),(17,9),(0,9)]
+    events = [
         {"kind":"spawn","type":"gift","cell":{"x":x,"y":y},"time":i*1000}
-        for i,(x,y) in enumerate([(0,0),(17,0),(17,9),(0,9)])
+        for i,(x,y) in enumerate(cells)
     ]
+    events.extend([
+        {"kind":"pickup","type":"gift","time":5000},
+        {"kind":"pickup","type":"gift","time":6000},
+        {"kind":"pickup","type":"gift","time":7000},
+        {"kind":"expire","type":"gift","cell":{"x":17,"y":0},"time":8000},
+    ])
+    return events
+
+
+def set_corner_report(report):
+    report["gift_spawns"] = 4
+    report["gift_pickups"] = 3
+    report["gift_expirations"] = [{"kind":"expire","type":"gift","cell":{"x":17,"y":0},"time":8000}]
+    report["active_gifts"] = 0
+    report["state"]["score"] = 1500
+    report["simulator_events"] = corner_events()
 
 
 class ReleaseGateTests(unittest.TestCase):
@@ -105,13 +122,14 @@ class ReleaseGateTests(unittest.TestCase):
     def test_corner_scenario_requires_all_four_corners(self):
         report=passing()
         report["scenario"]="corners"
-        report["simulator_events"]=corner_events()
+        set_corner_report(report)
         self.assertEqual(evaluate_release(report), [])
 
     def test_corner_scenario_fails_if_one_corner_not_exercised(self):
         report=passing()
         report["scenario"]="corners"
-        report["simulator_events"]=corner_events()[:-1]
+        set_corner_report(report)
+        report["simulator_events"] = report["simulator_events"][:-5]
         self.assertTrue(any("all four corners" in x for x in evaluate_release(report)))
 
     def test_event_history_must_match_report_counts(self):
@@ -125,12 +143,7 @@ class ReleaseGateTests(unittest.TestCase):
         report["seconds_requested"]=180
         report["state"]["time"]=180100
         report["wall_seconds_elapsed"]=180
-        report["simulator_events"]=[
-            {"kind":"spawn","type":"gift","cell":{"x":0,"y":0}},
-            {"kind":"spawn","type":"gift","cell":{"x":17,"y":0}},
-            {"kind":"spawn","type":"gift","cell":{"x":17,"y":9}},
-            {"kind":"spawn","type":"gift","cell":{"x":0,"y":9}},
-        ]
+        set_corner_report(report)
         self.assertEqual(evaluate_release(report), [])
 
 
