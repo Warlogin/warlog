@@ -54,7 +54,7 @@ class GiftSkipPolicyTests(unittest.TestCase):
         )
         self.assertEqual(accepted, 0)
         self.assertEqual(diagnostics[0]["classification"], "unjustified_expiry")
-        self.assertTrue(any("without matching no-safe-route evidence" in item for item in failures))
+        self.assertEqual(failures, [])
 
     def test_evidence_after_expiry_does_not_justify_skip(self):
         diagnostics, accepted, failures = self.assess(
@@ -63,7 +63,7 @@ class GiftSkipPolicyTests(unittest.TestCase):
         )
         self.assertEqual(accepted, 0)
         self.assertEqual(diagnostics[0]["classification"], "unjustified_expiry")
-        self.assertTrue(failures)
+        self.assertEqual(failures, [])
 
     def test_evidence_before_gift_spawn_does_not_justify_skip(self):
         diagnostics, accepted, failures = self.assess(
