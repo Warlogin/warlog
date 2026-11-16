@@ -24,6 +24,7 @@ test('configuration uses boolean toggles only',()=>assert.equal(A.normalizeSetti
 test('restart delays increase but are capped',()=>{
  const now=100000;
  assert.equal(A.restartDelayMs([],now),1400);
+ assert.ok(A.restartDelayMs([now-1000],now)>1400);
  let prev=0;for(let count=1;count<20;count++) {
   const next=A.restartDelayMs(Array(count).fill(now-1000),now);
   assert.ok(next>=prev);prev=next;
