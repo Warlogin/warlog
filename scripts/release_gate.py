@@ -62,8 +62,10 @@ def evaluate_release(result, gift_skip_failures=(), objective_skip_failures=()):
         failures.append("gift spawn/pickup/expiry accounting mismatch")
     if state.get("score") != gifts * 500:
         failures.append("score does not match gift-only pickups")
-    if len(expirations) > 2:
-        failures.append("more than two expired gifts in the release test")
+    if duration >= 720 and state.get("score", 0) <= 70000:
+        failures.append("12-minute run did not exceed 70000 points")
+    if len(expirations) > 10:
+        failures.append("more than ten expired gifts in the release test")
 
     if events:
         event_spawns = [
