@@ -28,7 +28,7 @@
   // 60 seconds back off rather than consuming an unbounded number of sessions.
   function restartDelayMs(recentTimes, now) {
     const recent=(Array.isArray(recentTimes)?recentTimes:[]).filter(t=>Number.isFinite(t)&&t<=now&&now-t<60000);
-    return Math.min(30000,Math.round(1400*Math.pow(1.7,Math.max(0,recent.length-1))));
+    return Math.min(30000,Math.round(1400*Math.pow(1.7,recent.length)));
   }
   const api={DEFAULTS,normalizeSettings,targetStatus,restartDelayMs};
   root.IceSnakeAutoTarget=api;
