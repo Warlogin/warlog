@@ -170,3 +170,17 @@ The next retest must use the same extension ZIP and parameters (`60`, `edge-gift
 - Runner сохраняет полный лог Service Worker и полный список событий симулятора, включая длинные 180-секундные сессии.
 - Анонимный read-only probe исходного сайта https://dobrycola-promo.ru/games/snake/ в GitHub Chromium вернул HTTP 200 с перенаправлением на /lk/, заголовок «Личный кабинет», canvas=0, кнопка «Играть» отсутствует. Без авторизованной сессии проверка оригинальной игры невозможна. Никаких действий в игре не выполнялось.
 - Стабильная контрольная v0.6.7 не заменяется до проверки кандидата v0.6.13 в оригинальной авторизованной игре.
+
+
+## 16.11.2026 — strict release gate and private automation
+
+- Runner remains v0.1.14. Public simulator CI now also tests the strict release-gate logic.
+- The release gate requires positive game-start acknowledgement, full wall-clock and simulated duration, worker-memory log, exact trajectory/turn-confirmation equality, no rejected reverse, no protective abort, no collision, gift-only score accounting, and no unproven gift expiry.
+- The \`corners\` scenario must actually spawn gifts in all four corner cells: (0,0), (17,0), (17,9), (0,9). A 180-second \`edge-gifts\` run must exercise all four board edges.
+- Gift spawn, pickup and expiry counters must match the complete simulator event history.
+- The public CI for release-gate coverage: GitHub Actions run #55, commit \`2d2dadce28d1a8392644d75764f54a64a980d467\`: SUCCESS.
+- Private E2E remains isolated in \`Warlogin/telegram-news-collector\`, branch \`isolation/ice-snake-e2e\`; candidate ZIP v0.6.13 and baseline ZIP v0.6.7 are stored only in its private vault. The private workflow checks both SHA-256 and manifest version before installing the MV3 extension in Chromium.
+- The private workflow is being hardened to run on push, manual dispatch and nightly schedule; all 9 candidate tests, including the 180-second run, are strict blocking gates. A final aggregator checks every report and only then uploads the private verified extension ZIP and SHA-256 as a downloadable artifact.
+- Existing private E2E run #5 completed all 9 candidate runs and the v0.6.7 comparison successfully. The 180-second candidate run produced 36,000 points, 72/74 gifts collected, two independently proven corner skips, 258/258 synchronized turns, no non-gift pickups, no reverse rejection, no protective stop and no collision.
+- The two skipped gifts were both at (17,0), where the adjacent (17,1) cell remained occupied by the non-target \`girl\`; this is a model-level proof under the gift-only/no-180°-reversal rules, not a claim about unobserved original-site mechanics.
+- Original-site validation remains separate: the anonymous read-only probe is redirected to \`/lk/\`, so production gameplay cannot be certified from unauthenticated CI. No local PowerShell or local Chromium is required for the simulator E2E matrix.
