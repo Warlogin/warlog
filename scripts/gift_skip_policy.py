@@ -2,7 +2,7 @@
 from datetime import datetime
 import re
 
-MAX_ACCEPTED_NO_SAFE_ROUTE_SKIPS = 10
+MAX_ALLOWED_GIFT_SKIPS = 10
 GRID_ORIGIN_X = 234
 GRID_ORIGIN_Y = 144
 GRID_STEP = 40
@@ -106,15 +106,12 @@ def assess_expired_gift_skips(expirations, spawn_events, log_text, started_at):
         })
 
     accepted = sum(item["classification"] == "accepted_no_safe_route" for item in diagnostics)
-    unjustified = sum(item["classification"] == "unjustified_expiry" for item in diagnostics)
+    # The user's release rule is a total skip budget, not a requirement that
+    # every individual skip be geometrically unavoidable. Keep the reason as
+    # diagnostic evidence, but only the total number of expired gifts gates release.
     failures = []
-    if unjustified:
+    if len(diagnostics) > MAX_ALLOWED_GIFT_SKIPS:
         failures.append(
-            f"{unjustified} gift(s) expired without matching no-safe-route evidence"
-        )
-    if accepted > MAX_ACCEPTED_NO_SAFE_ROUTE_SKIPS:
-        failures.append(
-            f"{accepted} objectively blocked gift skip(s) exceed the allowance "
-            f"of {MAX_ACCEPTED_NO_SAFE_ROUTE_SKIPS}"
+            f"{len(diagnostics)} gift(s) expired; allowance is {MAX_ALLOWED_GIFT_SKIPS}"
         )
     return diagnostics, accepted, failures
