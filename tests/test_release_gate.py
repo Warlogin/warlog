@@ -68,9 +68,15 @@ class ReleaseGateTests(unittest.TestCase):
         report=passing(); report["log_source"]="storage-fallback"
         self.assertTrue(evaluate_release(report))
 
-    def test_reverse_guard_is_failure(self):
-        report=passing(); report["reverse_guard"]=1
-        self.assertTrue(evaluate_release(report))
+    def test_reverse_guard_blocking_internal_request_is_safe(self):
+        report=passing(); report["reverse_guard"]=2
+        report["simulator_events"]=[]
+        self.assertEqual(evaluate_release(report), [])
+
+    def test_actual_reverse_key_reaching_game_is_failure(self):
+        report=passing()
+        report["simulator_events"]=[{"kind":"reverse-rejected","key":"ArrowUp"}]
+        self.assertIn("a reverse-direction key reached the game", evaluate_release(report))
 
     def test_game_over_is_failure(self):
         report=passing(); report["game_over_events"]=[{"kind":"game-over"}]
