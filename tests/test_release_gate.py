@@ -1,11 +1,11 @@
 import unittest
-from copy import deepcopy
 from scripts.release_gate import evaluate_release
 
 
 def passing():
     return {
         "seconds_requested":60,
+        "start":{"ok":True},
         "state":{"mode":"playing","time":60010,"score":11500},
         "cdp_commands":100,
         "confirmed_turns":98,
@@ -24,6 +24,13 @@ def passing():
     }
 
 
+def corner_events():
+    return [
+        {"kind":"spawn","type":"gift","cell":{"x":x,"y":y},"time":i*1000}
+        for i,(x,y) in enumerate([(0,0),(17,0),(17,9),(0,9)])
+    ]
+
+
 class ReleaseGateTests(unittest.TestCase):
     def test_passing_e2e_evidence(self):
         self.assertEqual(evaluate_release(passing()), [])
@@ -31,6 +38,10 @@ class ReleaseGateTests(unittest.TestCase):
     def test_no_input_is_failure(self):
         report=passing(); report["cdp_commands"]=0
         self.assertTrue(evaluate_release(report))
+
+    def test_start_not_acknowledged_is_failure(self):
+        report=passing(); report["start"]={"ok":False}
+        self.assertIn("game start was not positively acknowledged", evaluate_release(report))
 
     def test_missing_trajectory_confirmation_is_failure(self):
         report=passing(); report["confirmed_turns"]=97
@@ -73,7 +84,7 @@ class ReleaseGateTests(unittest.TestCase):
     def test_three_expirations_are_failure(self):
         report=passing()
         report["gift_spawns"]=26
-        report["gift_expirations"] = report["gift_expirations"]*3
+        report["gift_expirations"]=report["gift_expirations"]*3
         self.assertTrue(evaluate_release(report))
 
     def test_missing_pickup_is_failure(self):
@@ -90,6 +101,37 @@ class ReleaseGateTests(unittest.TestCase):
         failures=evaluate_release(report)
         self.assertTrue(any("score" in x for x in failures))
         self.assertTrue(any("accounting" in x for x in failures))
+
+    def test_corner_scenario_requires_all_four_corners(self):
+        report=passing()
+        report["scenario"]="corners"
+        report["simulator_events"]=corner_events()
+        self.assertEqual(evaluate_release(report), [])
+
+    def test_corner_scenario_fails_if_one_corner_not_exercised(self):
+        report=passing()
+        report["scenario"]="corners"
+        report["simulator_events"]=corner_events()[:-1]
+        self.assertTrue(any("all four corners" in x for x in evaluate_release(report)))
+
+    def test_event_history_must_match_report_counts(self):
+        report=passing()
+        report["simulator_events"]=[{"kind":"spawn","type":"gift","cell":{"x":0,"y":0}}]
+        self.assertTrue(any("event history" in x for x in evaluate_release(report)))
+
+    def test_long_edge_scenario_requires_all_four_sides(self):
+        report=passing()
+        report["scenario"]="edge-gifts"
+        report["seconds_requested"]=180
+        report["state"]["time"]=180100
+        report["wall_seconds_elapsed"]=180
+        report["simulator_events"]=[
+            {"kind":"spawn","type":"gift","cell":{"x":0,"y":0}},
+            {"kind":"spawn","type":"gift","cell":{"x":17,"y":0}},
+            {"kind":"spawn","type":"gift","cell":{"x":17,"y":9}},
+            {"kind":"spawn","type":"gift","cell":{"x":0,"y":9}},
+        ]
+        self.assertEqual(evaluate_release(report), [])
 
 
 if __name__ == "__main__":
