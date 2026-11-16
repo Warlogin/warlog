@@ -33,8 +33,15 @@ def evaluate_release(result, gift_skip_failures=(), objective_skip_failures=()):
         failures.append("confirmed turns differ from observed trajectory turns")
     if result.get("log_source") != "worker-memory":
         failures.append("live worker log unavailable; turn audit incomplete")
-    if result.get("reverse_guard", 0):
-        failures.append("reverse guard rejected a queued direction")
+    # A planner may internally propose an opposite key while a target is
+    # directly behind the head. The extension's reverse guard blocks it before
+    # CDP, so this diagnostic alone is not a game reversal. Fail only when the
+    # simulator actually receives and rejects an opposite-direction key.
+    reverse_events = [
+        event for event in events if event.get("kind") == "reverse-rejected"
+    ]
+    if reverse_events:
+        failures.append("a reverse-direction key reached the game")
     if result.get("autopilot_abort"):
         failures.append("autopilot protective stop")
     if result.get("game_over_events") or state.get("mode") == "over":
